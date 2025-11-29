@@ -1,43 +1,28 @@
-//
-// SmoothScroll for websites v1.4.6 (Balazs Galambosi)
-// http://www.smoothscroll.net/
-//
-// Licensed under the terms of the MIT license.
-//
-// You may use it in your theme if you credit me. 
-// It is also free to use on any individual website.
-//
-// Exception:
-// The only restriction is to not publish any  
-// extension for browsers or native application
-// without getting a written permission first.
-//
 
 (function () {
   
-// Scroll Variables (tweakable)
+
 var defaultOptions = {
 
-    // Scrolling Core
-    frameRate        : 150, // [Hz]
-    animationTime    : 1200, // [ms]
-    stepSize         : 100, // [px]
+    
+    frameRate        : 150, 
+    animationTime    : 1200, 
+    stepSize         : 100,
 
-    // Pulse (less tweakable)
-    // ratio of "tail" to "acceleration"
+    
     pulseAlgorithm   : true,
     pulseScale       : 4,
     pulseNormalize   : 1,
 
-    // Acceleration
-    accelerationDelta : 50,  // 50
-    accelerationMax   : 3,   // 3
+    
+    accelerationDelta : 50,  
+    accelerationMax   : 3,   
 
-    // Keyboard Settings
-    keyboardSupport   : true,  // option
-    arrowScroll       : 50,    // [px]
+    
+    keyboardSupport   : true,  
+    arrowScroll       : 50,    
 
-    // Other
+    
     fixedBackground   : true, 
     excluded          : ''    
 };
@@ -45,7 +30,7 @@ var defaultOptions = {
 var options = defaultOptions;
 
 
-// Other Variables
+
 var isExcluded = false;
 var isFrame = false;
 var direction = { x: 0, y: 0 };
@@ -61,22 +46,14 @@ var key = { left: 37, up: 38, right: 39, down: 40, spacebar: 32,
             pageup: 33, pagedown: 34, end: 35, home: 36 };
 var arrowKeys = { 37: 1, 38: 1, 39: 1, 40: 1 };
 
-/***********************************************
- * INITIALIZE
- ***********************************************/
 
-/**
- * Tests if smooth scrolling is allowed. Shuts down everything if not.
- */
 function initTest() {
     if (options.keyboardSupport) {
         addEvent('keydown', keydown);
     }
 }
 
-/**
- * Sets up scrolls array, determines if frames are involved.
- */
+
 function init() {
   
     if (initDone || !document.body) return;
@@ -88,23 +65,18 @@ function init() {
     var windowHeight = window.innerHeight; 
     var scrollHeight = body.scrollHeight;
     
-    // check compat mode for root element
+   
     root = (document.compatMode.indexOf('CSS') >= 0) ? html : body;
     activeElement = body;
     
     initTest();
 
-    // Checks if this script is running in a frame
+    
     if (top != self) {
         isFrame = true;
     }
 
-    /**
-     * Safari 10 fixed it, Chrome fixed it in v45:
-     * This fixes a bug where the areas left and right to 
-     * the content does not trigger the onmousewheel event
-     * on some pages. e.g.: html, body { height: 100% }
-     */
+    
     else if (isOldSafari &&
              scrollHeight > windowHeight &&
             (body.offsetHeight <= windowHeight || 
@@ -116,28 +88,27 @@ function init() {
                                       root.scrollHeight + 'px';
         document.body.appendChild(fullPageElem);
         
-        // DOM changed (throttled) to fix height
+        
         var pendingRefresh;
         refreshSize = function () {
-            if (pendingRefresh) return; // could also be: clearTimeout(pendingRefresh);
+            if (pendingRefresh) return; 
             pendingRefresh = setTimeout(function () {
-                if (isExcluded) return; // could be running after cleanup
+                if (isExcluded) return;
                 fullPageElem.style.height = '0';
                 fullPageElem.style.height = root.scrollHeight + 'px';
                 pendingRefresh = null;
-            }, 500); // act rarely to stay fast
+            }, 500); 
         };
   
         setTimeout(refreshSize, 10);
 
         addEvent('resize', refreshSize);
 
-        // TODO: attributeFilter?
+        
         var config = {
             attributes: true, 
             childList: true, 
             characterData: false 
-            // subtree: true
         };
 
         observer = new MutationObserver(refreshSize);
@@ -150,16 +121,14 @@ function init() {
         }
     }
 
-    // disable fixed background
+    
     if (!options.fixedBackground && !isExcluded) {
         body.style.backgroundAttachment = 'scroll';
         html.style.backgroundAttachment = 'scroll';
     }
 }
 
-/**
- * Removes event listeners and other traces left on the page.
- */
+
 function cleanup() {
     observer && observer.disconnect();
     removeEvent(wheelEvent, wheel);
@@ -170,17 +139,12 @@ function cleanup() {
 }
 
 
-/************************************************
- * SCROLLING 
- ************************************************/
- 
+
 var que = [];
 var pending = false;
 var lastScroll = Date.now();
 
-/**
- * Pushes scroll actions to the scrolling queue.
- */
+
 function scrollArray(elem, left, top) {
     
     directionCheck(left, top);
@@ -199,7 +163,7 @@ function scrollArray(elem, left, top) {
         lastScroll = Date.now();
     }          
     
-    // push a scroll command
+    
     que.push({
         x: left, 
         y: top, 
@@ -208,7 +172,7 @@ function scrollArray(elem, left, top) {
         start: Date.now()
     });
         
-    // don't act if there's a pending queue
+    
     if (pending) {
         return;
     }  
@@ -227,33 +191,33 @@ function scrollArray(elem, left, top) {
             var elapsed  = now - item.start;
             var finished = (elapsed >= options.animationTime);
             
-            // scroll position: [0, 1]
+            
             var position = (finished) ? 1 : elapsed / options.animationTime;
             
-            // easing [optional]
+            
             if (options.pulseAlgorithm) {
                 position = pulse(position);
             }
             
-            // only need the difference
+            
             var x = (item.x * position - item.lastX) >> 0;
             var y = (item.y * position - item.lastY) >> 0;
             
-            // add this to the total scrolling
+            
             scrollX += x;
             scrollY += y;            
             
-            // update last values
+            
             item.lastX += x;
             item.lastY += y;
         
-            // delete and step back if it's over
+            
             if (finished) {
                 que.splice(i, 1); i--;
             }           
         }
 
-        // scroll left and top
+        
         if (scrollWindow) {
             window.scrollBy(scrollX, scrollY);
         } 
@@ -262,7 +226,7 @@ function scrollArray(elem, left, top) {
             if (scrollY) elem.scrollTop  += scrollY;                    
         }
         
-        // clean up if there's nothing left to do
+        
         if (!left && !top) {
             que = [];
         }
@@ -274,15 +238,13 @@ function scrollArray(elem, left, top) {
         }
     };
     
-    // start a new queue of actions
+   
     requestFrame(step, elem, 0);
     pending = true;
 }
 
 
-/***********************************************
- * EVENTS
- ***********************************************/
+
 
 /**
  * Mouse wheel handler.
@@ -296,13 +258,12 @@ function wheel(event) {
     
     var target = event.target;
 
-    // leave early if default action is prevented   
-    // or it's a zooming event with CTRL 
+    
     if (event.defaultPrevented || event.ctrlKey) {
         return true;
     }
     
-    // leave embedded content alone (flash & pdf)
+    
     if (isNodeName(activeElement, 'embed') || 
        (isNodeName(target, 'embed') && /\.pdf/i.test(target.src)) ||
         isNodeName(activeElement, 'object') ||
@@ -474,9 +435,7 @@ function mousedown(event) {
 }
 
 
-/***********************************************
- * OVERFLOW
- ***********************************************/
+
 
 var uniqueID = (function () {
     var i = 0;
